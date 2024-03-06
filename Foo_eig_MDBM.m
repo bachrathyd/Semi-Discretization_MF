@@ -12,6 +12,7 @@ for k=1:size(ax,2)
 
 
 % %SLIGHLY SLOWER %e.g: 47s
+%    systemfun.rmax=ceil(systemfun.par.taumax/systemfun.dt);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 %     N=(systemfun.rmax+1)*systemfun.d;
 %     systemfun=SDcoeff(systemfun);
 %     s0=rand(N,1);
@@ -20,7 +21,8 @@ for k=1:size(ax,2)
 %     H(1,k)=log(max(abs(eigs(AffineMappingPerturbe,N))));
 
 
-    %SLOWEST %e.g: 229s
+%     %SLOWEST %e.g: 229s
+%     systemfun.rmax=ceil(systemfun.par.taumax/systemfun.dt);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 %     N=(systemfun.rmax+1)*systemfun.d;
 %     s0=rand(N,1);
 %     v0=IntegralMapping(s0,systemfun);

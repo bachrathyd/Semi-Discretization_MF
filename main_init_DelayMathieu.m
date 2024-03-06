@@ -22,7 +22,9 @@ par.delta=3.0;
 par.eps=2.0;
 par.b0=-0.15;
 par.kappa=0.05;
-par.T=2*pi; %time period of the system
+par.T=0.7*pi; %time period of the system %overlap (T > tau)
+par.T=2.0*pi; %time period of the system %equal (T = tau)
+par.T=7.0*pi; %time period of the system %missing elements (T > tau)
 
 par.taumax=2*pi; %maximal delay, used for the resolution of the timedelay
 
@@ -63,6 +65,11 @@ figure(32)
 plot(fp)
 
 %% Integration - onthe fly cacluation, without storing
+% Important if T>tau
+rmax=ceil(par.taumax/dt);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
+
+systemfun.rmax=rmax;
+% rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 N=(rmax+1)*d;
 v0=rand(N,1);
 
@@ -73,7 +80,7 @@ plot((1:(rmax+1)*d),v0), hold on
 
 for k=1:20
     v0=IntegralMapping(v0,systemfun);
-    plot((1:(rmax+1)*d) +k*(rmax+1)*d,v0), hold on
+    plot((1:(rmax+1)*d) +k*(p+0.1)*d,v0), hold on % 0.1 is to prevent the overlap
     %plot(v0LR)
     % pause
 end
@@ -124,8 +131,8 @@ par.T=2*pi; %time period of the system
 par.taumax=2*pi; %maximal delay, used for the
 
 
-pv=ceil(10.^(2.3:0.1:4.0));
-pv=ceil(10.^(1.0:0.1:3.3));
+% pv=ceil(10.^(1.0:0.1:4.0));
+pv=ceil(10.^(2.5:0.1:4.0));
 Tcpu_int=nan*pv;
 Tcpu_PhiLR=nan*pv;
 Tcpu_Phi=nan*pv;
@@ -135,10 +142,10 @@ for kp=1:length(pv)
     p=pv(kp)
 
 
-dt=par.T/p; %stepsize
-rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
+    dt=par.T/p; %stepsize
+    rmax=ceil(par.taumax/dt);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 
-d=size(A(0.0,par),1);%dimension of the sytem (states)
+    d=size(A(0.0,par),1);%dimension of the sytem (states)
 
     systemfun.p=p;
     systemfun.rmax=rmax;
@@ -151,22 +158,28 @@ d=size(A(0.0,par),1);%dimension of the sytem (states)
     systemfun=SDcoeff(systemfun);
     v0=IntegralMappingCoeff(s0,systemfun);
 
-       % ~linear in time p>~200
+    % ~linear in time p>~200  %Constant multiplier depends on Neig (almost proporionally if Neig larger (>10) )
     tic
+
+
     AffineMappingPerturbe=@(s) IntegralMappingCoeff(s+s0,systemfun)-v0;
     %LinMappingPerturbe=@(s) IntegralMapping(s,systemfun)
     mus(:,kp)=eigs(AffineMappingPerturbe,N,Neig);
-    Tcpu_int(kp)=toc;
+    Tcpu_int(kp)=toc/Neig;
 
     % ~quadratic in time if p>~200
-tic
-[PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
-   mus(:,kp)=eigs(PhiL\PhiR,Neig);
-Tcpu_Phi(kp)=toc;
-tic
-[PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
-   mus(:,kp)=eigs(PhiR,PhiL,Neig);
-Tcpu_PhiLR(kp)=toc;
+    if p<2000
+        rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
+        systemfun.rmax=rmax;
+        tic
+        [PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
+        mus(:,kp)=eigs(PhiL\PhiR,Neig);
+        Tcpu_Phi(kp)=toc;
+        tic
+        [PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
+        mus(:,kp)=eigs(PhiR,PhiL,Neig);
+        Tcpu_PhiLR(kp)=toc;
+    end
 end
 
 figure(432)
@@ -177,9 +190,9 @@ figure(432)
 
 coefficients = polyfit(log(pv),log(Tcpu_int), 1);
 loglog(pv,Tcpu_int,'DisplayName',num2str(coefficients(1))), hold on
-coefficients = polyfit(log(pv),log(Tcpu_PhiLR), 1);
+coefficients = polyfit(log(pv(~isnan(Tcpu_PhiLR))),log(Tcpu_PhiLR(~isnan(Tcpu_PhiLR))), 1);
 loglog(pv,Tcpu_PhiLR,'DisplayName',num2str(coefficients(1))), hold on
-coefficients = polyfit(log(pv),log(Tcpu_Phi), 1);
+coefficients = polyfit(log(pv(~isnan(Tcpu_Phi))),log(Tcpu_Phi(~isnan(Tcpu_Phi))), 1);
 loglog(pv,Tcpu_Phi,'DisplayName',num2str(coefficients(1))), hold on
 legend
 grid on
