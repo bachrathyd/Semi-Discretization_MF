@@ -5,6 +5,9 @@ H=zeros(1,size(ax,2));
 for k=1:size(ax,2)
     systemfun.par.delta=ax(1,k);
     systemfun.par.b0=ax(2,k);
+    if size(ax,1)>2
+    systemfun.par.eps=ax(3,k);
+    end
 
     %FASTEST %e.g: 19s
     [PhiL,PhiR,vi]=CoefficientMatrices(systemfun);

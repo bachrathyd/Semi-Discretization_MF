@@ -1,5 +1,3 @@
-
-
 %problem definition
 A=@(t,par) [0. 1.;...
     -par.delta-par.eps*cos(2*pi/par.T*t) -2*par.kappa];
@@ -8,13 +6,12 @@ A=@(t,par) [0. 1.;...
 B1=@(t,par) [0.;...
     par.b0];
 D1=@(t,par) [1.0, 0.];%the possible improvement is not yet utilized, it is just a preparation for further improvement
+%tau1=@(t,par) pi-pi*t/par.T ;
 tau1=@(t,par) 2*pi ;
 
-cVec = @(t,par) [0.;sin(4*pi/par.T*t)];
-%cVec = @(t,par) [0.;0.];
+cVec = @(t,par) [0.;sin(4*2*pi/par.T*t)];
 
 %xp(t)=A(t)*x(t)+B(t)*D(t)*x(t-tau(t)) +c(t)
-
 
 
 par=[];
@@ -22,9 +19,9 @@ par.delta=3.0;
 par.eps=2.0;
 par.b0=-0.15;
 par.kappa=0.05;
-par.T=0.7*pi; %time period of the system %overlap (T > tau)
+% par.T=0.7*pi; %time period of the system %overlap (T > tau)
 par.T=2.0*pi; %time period of the system %equal (T = tau)
-par.T=7.0*pi; %time period of the system %missing elements (T > tau)
+% par.T=7.0*pi; %time period of the system %missing elements (T > tau)
 
 par.taumax=2*pi; %maximal delay, used for the resolution of the timedelay
 
@@ -33,7 +30,6 @@ dt=par.T/p; %stepsize
 rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 
 d=size(A(0.0,par),1);%dimension of the sytem (states)
-
 
 
 
@@ -62,7 +58,7 @@ tic
 fp=(PhiL-PhiR)\vs;
 toc
 figure(32)
-plot(fp)
+plot((0:rmax)*dt,fp(1:2:end),(0:rmax)*dt,fp(2:2:end))
 
 %% Integration - onthe fly cacluation, without storing
 % Important if T>tau
@@ -81,7 +77,7 @@ plot((1:(rmax+1)*d),v0), hold on
 for k=1:20
     v0=IntegralMapping(v0,systemfun);
     plot((1:(rmax+1)*d) +k*(p+0.1)*d,v0), hold on % 0.1 is to prevent the overlap
-    %plot(v0LR)
+    %plot(v0)
     % pause
 end
 
@@ -101,7 +97,6 @@ toc
 
 %% Integration based with precomputed coefficient matrices
 
-
 systemfun=SDcoeff(systemfun)
 v0C=IntegralMappingCoeff(s0,systemfun);
 
@@ -118,87 +113,9 @@ toc
 
 
 
-%% - Time complextiy check -
-
-
-
-par=[];
-par.delta=3.0;
-par.eps=2.0;
-par.b0=-0.15;
-par.kappa=0.05;
-par.T=2*pi; %time period of the system
-par.taumax=2*pi; %maximal delay, used for the
-
-
-% pv=ceil(10.^(1.0:0.1:4.0));
-pv=ceil(10.^(2.5:0.1:4.0));
-Tcpu_int=nan*pv;
-Tcpu_PhiLR=nan*pv;
-Tcpu_Phi=nan*pv;
-Neig=1;
-mus=nan(Neig,length(pv));
-for kp=1:length(pv)
-    p=pv(kp)
-
-
-    dt=par.T/p; %stepsize
-    rmax=ceil(par.taumax/dt);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
-
-    d=size(A(0.0,par),1);%dimension of the sytem (states)
-
-    systemfun.p=p;
-    systemfun.rmax=rmax;
-    systemfun.d=d;
-    systemfun.dt=dt;
-    systemfun.par=par;
-
-    N=(rmax+1)*d;
-    s0=rand(N,1);
-    systemfun=SDcoeff(systemfun);
-    v0=IntegralMappingCoeff(s0,systemfun);
-
-    % ~linear in time p>~200  %Constant multiplier depends on Neig (almost proporionally if Neig larger (>10) )
-    tic
-
-
-    AffineMappingPerturbe=@(s) IntegralMappingCoeff(s+s0,systemfun)-v0;
-    %LinMappingPerturbe=@(s) IntegralMapping(s,systemfun)
-    mus(:,kp)=eigs(AffineMappingPerturbe,N,Neig);
-    Tcpu_int(kp)=toc/Neig;
-
-    % ~quadratic in time if p>~200
-    if p<2000
-        rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
-        systemfun.rmax=rmax;
-        tic
-        [PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
-        mus(:,kp)=eigs(PhiL\PhiR,Neig);
-        Tcpu_Phi(kp)=toc;
-        tic
-        [PhiL,PhiR,vs]=CoefficientMatrices(systemfun);
-        mus(:,kp)=eigs(PhiR,PhiL,Neig);
-        Tcpu_PhiLR(kp)=toc;
-    end
-end
-
-figure(432)
-% % clf
-% subplot(2,1,1)
-% loglog(pv,abs(mus)),hold on
-% subplot(2,1,2)
-
-coefficients = polyfit(log(pv),log(Tcpu_int), 1);
-loglog(pv,Tcpu_int,'DisplayName',num2str(coefficients(1))), hold on
-coefficients = polyfit(log(pv(~isnan(Tcpu_PhiLR))),log(Tcpu_PhiLR(~isnan(Tcpu_PhiLR))), 1);
-loglog(pv,Tcpu_PhiLR,'DisplayName',num2str(coefficients(1))), hold on
-coefficients = polyfit(log(pv(~isnan(Tcpu_Phi))),log(Tcpu_Phi(~isnan(Tcpu_Phi))), 1);
-loglog(pv,Tcpu_Phi,'DisplayName',num2str(coefficients(1))), hold on
-legend
-grid on
-
 
 %% ------------MDBM-----------------
+tic
 addpath('C:\Users\Bacharthy\Documents\GitHub\MBDM\code_folder')
 
 par=[];
@@ -210,10 +127,9 @@ par.T=2*pi; %time period of the system
 par.taumax=2*pi; %maximal delay, used for the resolution of the timedelay
 
 
-p=130; %time steps for a full period
+p=100; %time steps for a full period
 dt=par.T/p; %stepsize
 rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
-
 
 
 systemfun.A=A;
@@ -230,16 +146,22 @@ systemfun.par=par;
 
 %the limits and the initial mesh
 ax=[];
-ax(1).val=-1:0.2:5;%delta
+ax(1).val=-1:0.5:5;%delta
 ax(2).val=-1.5:0.2:1.5;%b0
+ax(3).val=linspace(-0.01,5,5);%epsilon
 %Foo_eig_MDBM([1.1;3.3],systemfun)
-mdbm_options=mdbmset('timelimit',500);
-mdbm_sol=mdbm(ax,'Foo_eig_MDBM',2,mdbm_options,systemfun);
+mdbm_options=mdbmset('timelimit',inf);
+mdbm_sol=mdbm(ax,'Foo_eig_MDBM',4,mdbm_options,systemfun);
 figure(2)
-% clf
+clf
 hold on
-plotobject=plot_mdbm(mdbm_sol,'k');
+plotobject=plot_mdbm(mdbm_sol);
 set(plotobject,'LineWidth',2)
-view(2)
-xlim([-0.35,5])
-ylim([-1.,1.2])
+% view(2)
+% xlim([-0.35,5])
+% ylim([-1.,1.2])
+shading interp
+light('Position',[-10 0 0],'Style','local')
+light('Position',[0 10 0],'Style','local')
+light('Position',[0 0 10],'Style','local')
+toc

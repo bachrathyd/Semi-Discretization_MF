@@ -19,15 +19,17 @@ if (all( diff([length(Bs),length(Ds),length(Ds)])))
     error('Dimension missmatch in delay terms')
 end
 
+%ON-THE-FLY calculation
 
 for ti=0:p-1
     t=ti*dt+dt/2;
     tishift=ti+(size(smat,2));%for the proper indexing of smatconti
     %tishift=ti+(rmax);%for the proper indexing of smatconti
-    
+    E=eye(d,d);
     
     %P=E+A(t,par)*dt+A(t,par)*A(t,par)*dt^2/2+A(t,par)*A(t,par)*A(t,par)*dt^2/2/3;
-    P=expm(A(t,par)*dt);
+    %P=expm(A(t,par)*dt);
+    P=E+A(t,par)*dt+A(t,par)*A(t,par)*dt^2/2;
     %Phi((p-ti)*d+dsize,(p-ti+1)*d+dsize) = -P;
     Incement=P*smatconti(:,tishift);
     
