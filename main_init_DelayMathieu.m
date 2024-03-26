@@ -25,12 +25,11 @@ par.T=2.0*pi; %time period of the system %equal (T = tau)
 
 par.taumax=2*pi; %maximal delay, used for the resolution of the timedelay
 
-p=50; %time steps for a full period
+p=500; %time steps for a full period
 dt=par.T/p; %stepsize
 rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be reduced to r=ceil(par.taumax/dt);
 
 d=size(A(0.0,par),1);%dimension of the sytem (states)
-
 
 
 systemfun.A=A;
@@ -151,7 +150,7 @@ ax(2).val=-1.5:0.2:1.5;%b0
 ax(3).val=linspace(-0.01,5,5);%epsilon
 %Foo_eig_MDBM([1.1;3.3],systemfun)
 mdbm_options=mdbmset('timelimit',inf);
-mdbm_sol=mdbm(ax,'Foo_eig_MDBM',4,mdbm_options,systemfun);
+mdbm_sol=mdbm(ax,'Foo_eig_MDBM',3,mdbm_options,systemfun);
 figure(2)
 clf
 hold on

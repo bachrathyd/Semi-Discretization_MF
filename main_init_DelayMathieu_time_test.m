@@ -35,8 +35,6 @@ rmax=max(ceil(par.taumax/dt),p-1);% stepsize for the delay %TODO: it can be redu
 d=size(A(0.0,par),1);%dimension of the sytem (states)
 
 
-
-
 systemfun.A=A;
 systemfun.Bs={B1};
 systemfun.Ds={D1};
